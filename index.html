@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Finance Tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
+<style>
+body { font-family: Arial; padding: 20px; background:#f5f5f5; }
+.hidden { display:none; }
+.container { max-width:500px; margin:auto; background:white; padding:20px; border-radius:10px; }
+input, select, textarea { width:100%; padding:10px; margin:8px 0; }
+button { padding:10px; width:100%; }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2 id="title">Login</h2>
+
+<!-- LOGIN -->
+<div id="loginSection">
+<input id="email" placeholder="Email">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+<button onclick="signup()">Sign Up</button>
+</div>
+
+<!-- SETUP -->
+<div id="setupSection" class="hidden">
+<h3>Setup</h3>
+
+<input id="monthlyIncome" placeholder="Income">
+<input id="monthlyRent" placeholder="Rent">
+<input id="foodBudget" placeholder="Food">
+<input id="transportBudget" placeholder="Transport">
+<input id="billBudget" placeholder="Bills">
+<input id="tuitionBudget" placeholder="Tuition">
+<input id="debtPayment" placeholder="Debt Payment">
+<input id="savingsGoal" placeholder="Savings Goal">
+<input id="emergencyFund" placeholder="Emergency Fund">
+<input id="currentDebt" placeholder="Current Debt">
+
+<select id="goalType">
+<option>Save</option>
+<option>Invest</option>
+</select>
+
+<input id="overspendArea" placeholder="Overspend Area">
+<textarea id="monthlyNotes"></textarea>
+
+<button onclick="saveSetup()">Save</button>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="hidden">
+<h3>Dashboard</h3>
+<p id="summary"></p>
+<button onclick="logout()">Logout</button>
+</div>
+
+</div>
+
+<script>
+
+// Firebase config (keep yours)
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  projectId: "YOUR_ID"
+};
+
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const $ = id => document.getElementById(id);
+
+// AUTH
+function login(){
+  auth.signInWithEmailAndPassword($("email").value,$("password").value);
+}
+
+function signup(){
+  auth.createUserWithEmailAndPassword($("email").value,$("password").value);
+}
+
+function logout(){
+  auth.signOut();
+}
+
+// STATE
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    $("loginSection").classList.add("hidden");
+
+    const doc = await db.collection("users").doc(user.uid).get();
+
+    if(doc.exists){
+      loadUser(doc.data());
+      $("dashboard").classList.remove("hidden");
+    } else {
+      $("setupSection").classList.remove("hidden");
+    }
+
+  } else {
+    $("loginSection").classList.remove("hidden");
+    $("setupSection").classList.add("hidden");
+    $("dashboard").classList.add("hidden");
+  }
+});
+
+// SAVE SETUP
+function saveSetup(){
+  const user = auth.currentUser;
+
+  const data = {
+    monthlyIncome: $("monthlyIncome").value,
+    monthlyRent: $("monthlyRent").value,
+    foodBudget: $("foodBudget").value,
+    transportBudget: $("transportBudget").value,
+    billBudget: $("billBudget").value,
+    tuitionBudget: $("tuitionBudget").value,
+    debtPayment: $("debtPayment").value,
+    savingsGoal: $("savingsGoal").value,
+    emergencyFund: $("emergencyFund").value,
+    currentDebt: $("currentDebt").value,
+    goalType: $("goalType").value,
+    alerts: "No",   // HARD-CODED
+    overspendArea: $("overspendArea").value,
+    monthlyNotes: $("monthlyNotes").value
+  };
+
+  db.collection("users").doc(user.uid).set(data);
+}
+
+// LOAD USER
+function loadUser(profile){
+
+[
+  "monthlyIncome","monthlyRent","foodBudget","transportBudget","billBudget",
+  "tuitionBudget","debtPayment","savingsGoal","emergencyFund","currentDebt",
+  "goalType","overspendArea","monthlyNotes"
+].forEach(id=>{
+  $(id).value = profile[id] ?? "";
+});
+
+  $("summary").innerText = `
+  Income: ${profile.monthlyIncome}
+  Rent: ${profile.monthlyRent}
+  Savings Goal: ${profile.savingsGoal}
+  `;
+}
+
+</script>
+
+</body>
+</html>
