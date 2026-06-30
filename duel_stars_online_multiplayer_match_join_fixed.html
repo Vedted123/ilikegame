@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Duel Stars Online</title>
+<style>
+  html,body{margin:0;overflow:hidden;background:#05070d;font-family:Arial,sans-serif;user-select:none;color:white}
+  button,input,select{font-family:inherit}
+  #hud{position:fixed;left:16px;top:12px;z-index:5;text-shadow:0 2px 4px #000;font-size:17px;line-height:1.35}
+  #msg{position:fixed;top:82px;width:100%;text-align:center;z-index:7;font-size:30px;font-weight:900;color:#ffe66d;text-shadow:0 3px 7px #000;pointer-events:none}
+  #hint{position:fixed;bottom:92px;width:100%;text-align:center;z-index:7;font-size:20px;font-weight:800;text-shadow:0 3px 7px #000;pointer-events:none}
+  #crosshair{position:fixed;left:50%;top:50%;width:20px;height:20px;transform:translate(-50%,-50%);z-index:6;pointer-events:none}
+  #crosshair:before,#crosshair:after{content:"";position:absolute;background:#fff;box-shadow:0 0 5px #000}
+  #crosshair:before{left:9px;top:0;width:2px;height:20px} #crosshair:after{left:0;top:9px;width:20px;height:2px}
+  #scopeOverlay{display:none;position:fixed;inset:0;z-index:8;pointer-events:none;background:radial-gradient(circle at center, transparent 0 24%, rgba(0,0,0,.92) 25% 100%)}
+  #scopeOverlay:before{content:"";position:absolute;left:50%;top:50%;width:46vmin;height:46vmin;border:3px solid rgba(255,255,255,.85);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 20px #000 inset,0 0 16px #000}
+  #scopeOverlay:after{content:"+";position:absolute;left:50%;top:50%;transform:translate(-50%,-52%);font-size:46px;color:#fff;text-shadow:0 0 8px #000}
+  #weaponBar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:8px;z-index:7}
+  .slot{min-width:116px;padding:10px 8px;text-align:center;border-radius:12px;background:rgba(0,0,0,.55);border:2px solid rgba(255,255,255,.22);font-weight:900;text-shadow:0 2px 4px #000;font-size:14px}
+  .slot small{display:block;color:rgba(255,255,255,.65);font-size:11px;margin-top:2px}.active{border-color:#00e5ff;box-shadow:0 0 16px rgba(0,229,255,.55);color:#8cf7ff}
+  #settingsBtn{position:fixed;right:18px;bottom:18px;z-index:10;border:2px solid rgba(140,247,255,.55);border-radius:999px;padding:12px 18px;background:rgba(0,229,255,.92);color:#061018;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 0 20px rgba(0,229,255,.28)}
+  .panel{display:none;position:fixed;right:18px;top:14px;width:380px;max-height:calc(100vh - 36px);overflow:auto;z-index:12;background:linear-gradient(180deg,rgba(12,18,34,.97),rgba(3,7,14,.95));border:2px solid rgba(140,247,255,.35);border-radius:18px;padding:14px;box-shadow:0 0 30px rgba(0,229,255,.18)}
+  .panel h2,.panel h3{margin:0;color:#8cf7ff}.panel p{color:rgba(255,255,255,.74);font-size:13px;margin:5px 0 10px}.row{display:flex;gap:8px;align-items:center}.between{justify-content:space-between}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.tab,.btn,.card button{border:0;border-radius:12px;padding:10px 12px;font-weight:900;cursor:pointer;background:rgba(255,255,255,.1);color:white}.tab.on,.btn.primary{background:#00e5ff;color:#061018}.btn.danger{background:#ff4b4b;color:white}.card{border:1px solid rgba(255,255,255,.16);border-radius:14px;background:rgba(255,255,255,.06);padding:10px;margin:8px 0}.weaponGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.weaponCard{border:1px solid rgba(255,255,255,.15);border-radius:12px;background:rgba(0,0,0,.22);padding:9px}.weaponCard b{color:#fff}.weaponCard small{display:block;color:#a9dfe8;margin-top:3px}.pill{display:inline-block;border-radius:999px;padding:3px 8px;background:rgba(255,255,255,.12);font-size:12px;margin-top:5px}.locked{opacity:.55}.equipped{outline:2px solid #00e5ff}.colorPick{display:flex;gap:8px;flex-wrap:wrap}.colorSwatch{width:32px;height:32px;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer}.colorSwatch.sel{border-color:#fff;box-shadow:0 0 12px #fff}input{width:100%;box-sizing:border-box;border:1px solid rgba(255,255,255,.2);border-radius:10px;background:rgba(0,0,0,.25);color:white;padding:10px;font-weight:700}
+  #loadoutPanel{display:none;position:fixed;inset:0;z-index:20;background:radial-gradient(circle,rgba(20,35,70,.94),rgba(0,0,0,.98));padding:28px;box-sizing:border-box;overflow:auto;text-align:center}.loadGrid{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:12px;max-width:1100px;margin:18px auto}.loadCol{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:12px;text-align:left}.loadCol h3{text-align:center;color:#8cf7ff}.loadOpt{display:block;width:100%;margin:8px 0;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(0,0,0,.3);color:white;font-weight:900;cursor:pointer}.loadOpt.sel{background:#00e5ff;color:#061018}.loadOpt.locked{cursor:not-allowed;opacity:.4}
+  #clickToLock{position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:30;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:8px 14px;font-weight:800;color:#fff}
+  #playerList{position:fixed;right:18px;top:14px;z-index:4;background:rgba(0,0,0,.38);border:1px solid rgba(255,255,255,.16);border-radius:14px;padding:10px;min-width:190px;text-shadow:0 2px 4px #000}.tiny{font-size:12px;color:rgba(255,255,255,.65)}
+</style>
+</head>
+<body>
+<div id="hud"><div><b>Duel Stars Online</b></div><div>Status: <b id="statusText">Connecting</b></div><div>Health: <b id="health">100</b></div><div>Score: <b id="scoreText">0 - 0</b></div><div>Shards: <b id="shards">0</b></div><div class="tiny">WASD move · Mouse/trackpad look · Click attack · Right-click scope/special · E interact · Tab closes menus</div></div>
+<div id="msg"></div><div id="hint"></div><div id="crosshair"></div><div id="scopeOverlay"></div><div id="clickToLock">Click game to control camera</div>
+<div id="playerList"><b>Online Lobby</b><div id="playersOnline" class="tiny">Loading...</div></div>
+<div id="weaponBar"></div><button id="settingsBtn">Settings</button>
+<div id="settingsPanel" class="panel"><div class="row between"><div><h2>Duel Stars</h2><p>Weapons and player customization. Press Tab to close.</p></div><button class="btn danger" id="closeSettings">×</button></div><div class="tabs"><button class="tab on" data-tab="weapons">Weapons</button><button class="tab" data-tab="me">Me</button></div><div id="weaponsTab"></div><div id="meTab" style="display:none"></div></div>
+<div id="shopPanel" class="panel"><div class="row between"><div><h2>Shop Basket</h2><p>Buy locked weapons with shards.</p></div><button class="btn danger" id="closeShop">×</button></div><div id="shopItems"></div></div>
+<div id="loadoutPanel"><h1>Duel Stars Loadout</h1><p>Choose exactly one weapon from each category before the round starts.</p><div class="loadGrid" id="loadoutGrid"></div><button class="btn primary" id="readyBtn" style="font-size:20px;padding:14px 30px">Ready</button><p id="readyStatus">Waiting for players...</p></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script>
+const firebaseConfig={apiKey:"AIzaSyB3f3MdNWoKjjo54qAyt6As26rbL7LKavA",authDomain:"rivals-51d2c.firebaseapp.com",databaseURL:"https://rivals-51d2c-default-rtdb.firebaseio.com",projectId:"rivals-51d2c",storageBucket:"rivals-51d2c.firebasestorage.app",messagingSenderId:"458776303075",appId:"1:458776303075:web:3463aefd06ce14941afcd6"};
+firebase.initializeApp(firebaseConfig);const auth=firebase.auth();const db=firebase.database();
+const tabId=sessionStorage.getItem("duelStarsTabId")||Math.random().toString(36).slice(2,10);sessionStorage.setItem("duelStarsTabId",tabId);
+let scene,camera,renderer,clock=new THREE.Clock();let authUid=null,uid=null,myRef=null,queueRef=null,currentMatchRef=null,currentMatch=null,matchId=null,mySide=null,remoteId=null,remoteSide=null;
+let yaw=0,pitch=0,keys={},mouseDown=false,isADS=false,canShoot=true,gameMode="lobby",roundPhase="lobby",menuOpen=false,shopOpen=false,ready=false,lastNet=0,lastHeartbeat=0,standingPad=null;
+let bullets=[],grenades=[],remotePlayers={},remoteMeshes={},nameSprites=[];
+const LOBBY_Z=46,ARENA_Z=0;
+const STARTS={blue:new THREE.Vector3(-8,1.7,12),red:new THREE.Vector3(8,1.7,-12)};
+let shards=Number(localStorage.getItem("duelStarsShards")||0);
+let playerName=localStorage.getItem("duelStarsName")||("Player"+Math.floor(Math.random()*999));
+let skinColor=localStorage.getItem("duelStarsSkin")||"#4fd3ff";
+let unlocked=JSON.parse(localStorage.getItem("duelStarsUnlocked")||"[true,true,true,true,false,false,false,false,false]");
+while(unlocked.length<9) unlocked.push(false);
+let loadout=JSON.parse(localStorage.getItem("duelStarsLoadout")||'{"primary":0,"secondary":1,"melee":2,"support":3}');
+let currentWeapon=loadout.primary;
+const weapons=[
+{name:"Assault Rifle",short:"AR",type:"primary",damage:16,cooldown:95,speed:95,spread:.018,pellets:1,head:1.6,scope:1.35},
+{name:"Handgun",short:"Handgun",type:"secondary",damage:32,cooldown:310,speed:86,spread:.014,pellets:1,head:1.7},
+{name:"Fists",short:"Fists",type:"melee",damage:22,cooldown:420,range:2.2,head:1},
+{name:"Grenade",short:"Grenade",type:"support",damage:55,cooldown:900,speed:22,explosion:5.2,head:1},
+{name:"Shotgun",short:"Shotgun",type:"secondary",damage:12,cooldown:650,speed:76,spread:.12,pellets:7,head:1.45,cost:3},
+{name:"Sniper",short:"Sniper",type:"primary",damage:86,cooldown:850,speed:140,spread:.004,pellets:1,head:999,scope:3.2,cost:5},
+{name:"SMG",short:"SMG",type:"primary",damage:10,cooldown:58,speed:86,spread:.036,pellets:1,head:1.45,cost:7},
+{name:"Knife",short:"Knife",type:"melee",damage:40,cooldown:430,range:2.4,backstab:999,cost:5,head:1},
+{name:"Medkit",short:"Medkit",type:"support",heal:50,cooldown:1800,cost:5,head:1}
+];
+const player={pos:new THREE.Vector3(0,1.7,LOBBY_Z),vel:new THREE.Vector3(),health:100,grounded:false,radius:.55,height:1.7};
+const walls=[];let playBluePad,playRedPad,shopBasket,weaponView;
+const $=id=>document.getElementById(id);const msg=$('msg'),hint=$('hint');
+function saveLocal(){localStorage.setItem("duelStarsShards",shards);localStorage.setItem("duelStarsName",playerName);localStorage.setItem("duelStarsSkin",skinColor);localStorage.setItem("duelStarsUnlocked",JSON.stringify(unlocked));localStorage.setItem("duelStarsLoadout",JSON.stringify(loadout));}
+function setMessage(t,ms=1200){msg.textContent=t;if(ms)setTimeout(()=>{if(msg.textContent===t)msg.textContent=""},ms)}
+function init3D(){scene=new THREE.Scene();scene.background=new THREE.Color(0x0a1020);scene.fog=new THREE.Fog(0x0a1020,30,92);camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.1,1000);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;document.body.appendChild(renderer.domElement);scene.add(new THREE.HemisphereLight(0xbbeeff,0x111122,1.2));const sun=new THREE.DirectionalLight(0xffffff,1.5);sun.position.set(8,14,10);sun.castShadow=true;scene.add(sun);makeArena();makeLobby();makeWeaponModel();selectWeapon(loadout.primary);animate();}
+function makeArena(){const floor=new THREE.Mesh(new THREE.BoxGeometry(36,1,36),new THREE.MeshStandardMaterial({color:0x20283d,roughness:.8}));floor.position.y=-.55;floor.receiveShadow=true;scene.add(floor);addWall(0,2,-18,36,4,1);addWall(0,2,18,36,4,1);addWall(-18,2,0,1,4,36);addWall(18,2,0,1,4,36);addWall(-7,1.5,-3,3,3,7);addWall(7,1.5,3,3,3,7);addWall(0,1.2,0,5,2.4,2);scene.add(new THREE.GridHelper(36,36,0x5577aa,0x22334f));}
+function makeLobby(){const z=LOBBY_Z;const floor=new THREE.Mesh(new THREE.BoxGeometry(28,1,28),new THREE.MeshStandardMaterial({color:0x20283d,roughness:.8}));floor.position.set(0,-.55,z);floor.receiveShadow=true;scene.add(floor);addWall(0,2,z-14,28,4,1);addWall(0,2,z+14,28,4,1);addWall(-14,2,z,1,4,28);addWall(14,2,z,1,4,28);let grid=new THREE.GridHelper(28,28,0x5577aa,0x22334f);grid.position.z=z;scene.add(grid);
+ playBluePad=new THREE.Mesh(new THREE.BoxGeometry(4,0.18,4),new THREE.MeshStandardMaterial({color:0x178bff,emissive:0x001d44}));playBluePad.position.set(-4,0.08,z-7);scene.add(playBluePad);playRedPad=new THREE.Mesh(new THREE.BoxGeometry(4,0.18,4),new THREE.MeshStandardMaterial({color:0xff3030,emissive:0x330000}));playRedPad.position.set(4,0.08,z-7);scene.add(playRedPad);
+ shopBasket=new THREE.Group();const base=new THREE.Mesh(new THREE.BoxGeometry(2.8,1.2,2),new THREE.MeshStandardMaterial({color:0xffaa33,roughness:.45}));base.position.y=.7;const rim=new THREE.Mesh(new THREE.TorusGeometry(1.25,.08,8,32),new THREE.MeshStandardMaterial({color:0xffdd77}));rim.rotation.x=Math.PI/2;rim.position.y=1.35;const handle=new THREE.Mesh(new THREE.TorusGeometry(.9,.06,8,32,Math.PI),new THREE.MeshStandardMaterial({color:0xffdd77}));handle.position.y=1.6;handle.rotation.z=Math.PI;shopBasket.add(base,rim,handle);shopBasket.position.set(0,0,z+6);scene.add(shopBasket);}
+function addWall(x,y,z,w,h,d){const mesh=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color:0x33415f,roughness:.7}));mesh.position.set(x,y,z);mesh.castShadow=true;mesh.receiveShadow=true;scene.add(mesh);walls.push({mesh,box:new THREE.Box3().setFromObject(mesh)});}
+function makeWeaponModel(){weaponView=new THREE.Group();camera.add(weaponView);scene.add(camera);rebuildWeaponModel();}
+function rebuildWeaponModel(){while(weaponView.children.length)weaponView.remove(weaponView.children[0]);const mat=new THREE.MeshStandardMaterial({color:0x151515,metalness:.25,roughness:.55});const accent=new THREE.MeshStandardMaterial({color:0x00e5ff,emissive:0x003344});const w=weapons[currentWeapon];
+ if(w.type==='melee'){let geo=currentWeapon===7?new THREE.BoxGeometry(.08,.16,.75):new THREE.SphereGeometry(.17,16,16);let m=new THREE.Mesh(geo,currentWeapon===7?new THREE.MeshStandardMaterial({color:0xddeeff,metalness:.4,roughness:.25}):accent);m.position.set(.32,-.25,-.62);weaponView.add(m);return} if(currentWeapon===3){let g=new THREE.Mesh(new THREE.SphereGeometry(.18,16,16),new THREE.MeshStandardMaterial({color:0x55aa44}));g.position.set(.35,-.25,-.65);weaponView.add(g);return} if(currentWeapon===8){let box=new THREE.Mesh(new THREE.BoxGeometry(.34,.25,.26),new THREE.MeshStandardMaterial({color:0xffffff}));box.position.set(.35,-.25,-.65);let cross=new THREE.Mesh(new THREE.BoxGeometry(.08,.3,.02),new THREE.MeshStandardMaterial({color:0xff3333}));cross.position.set(.35,-.25,-.51);weaponView.add(box,cross);return}
+ const length=[0,4,5].includes(currentWeapon)?.9:.5;const gun=new THREE.Mesh(new THREE.BoxGeometry(.18,.18,length),mat);gun.position.set(.32,-.23,-.65);const barrel=new THREE.Mesh(new THREE.BoxGeometry(.08,.08,.35),mat);barrel.position.set(.32,-.21,-1.1);const glow=new THREE.Mesh(new THREE.BoxGeometry(.2,.06,.14),accent);glow.position.set(.32,-.12,-.5);weaponView.add(gun,barrel,glow);if(currentWeapon===0||currentWeapon===5){let scope=new THREE.Mesh(new THREE.CylinderGeometry(currentWeapon===5?.12:.09,currentWeapon===5?.12:.09,currentWeapon===5?.45:.26,18),mat);scope.rotation.x=Math.PI/2;scope.position.set(.32,currentWeapon===5?-.03:-.06,-.7);weaponView.add(scope)}}
+function makeNameSprite(name){const canvas=document.createElement('canvas');canvas.width=512;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,512,128);ctx.font='bold 48px Arial';ctx.textAlign='center';ctx.textBaseline='middle';const safe=(name||'Player').slice(0,18);const w=Math.min(470,ctx.measureText(safe).width+46);ctx.fillStyle='rgba(0,0,0,.62)';ctx.strokeStyle='rgba(140,247,255,.95)';ctx.lineWidth=4;roundRect(ctx,(512-w)/2,25,w,78,22);ctx.fill();ctx.stroke();ctx.fillStyle='white';ctx.fillText(safe,256,64);const tex=new THREE.CanvasTexture(canvas);tex.needsUpdate=true;const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));spr.scale.set(2.7,.68,1);spr.position.y=2.7;spr.userData.labelName=safe;return spr;}
+function roundRect(ctx,x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+function makePlayerMesh(color,name){const group=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.45,1.05,6,12),new THREE.MeshStandardMaterial({color:new THREE.Color(color||'#4fd3ff')}));body.position.y=1;body.castShadow=true;group.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.32,16,16),new THREE.MeshStandardMaterial({color:0xffc3aa}));head.position.y=1.9;head.castShadow=true;group.add(head);const gun=new THREE.Mesh(new THREE.BoxGeometry(.18,.18,.9),new THREE.MeshStandardMaterial({color:0x111111}));gun.position.set(.35,1.35,.25);group.add(gun);const label=makeNameSprite(name);group.add(label);group.userData.body=body;group.userData.label=label;group.userData.name=name||'Player';scene.add(group);return group;}
+function updateRemoteMeshes(){for(const id in remotePlayers){if(id===uid)continue;let p=remotePlayers[id];if(!remoteMeshes[id])remoteMeshes[id]=makePlayerMesh(p.color,p.name);let m=remoteMeshes[id];let visible=p.mode==='lobby'||p.matchId===matchId;m.visible=visible;let groundY=Math.max(0,(Number(p.y)||1.7)-1.7);let target=new THREE.Vector3(Number(p.x)||0,groundY,Number(p.z)||LOBBY_Z);m.position.lerp(target,.35);m.rotation.y=Number(p.yaw)||0;m.userData.body.material.color.set(p.color||'#4fd3ff');if((p.name||'Player')!==m.userData.name){m.remove(m.userData.label);m.userData.label.material.map.dispose();m.userData.label.material.dispose();m.userData.label=makeNameSprite(p.name);m.add(m.userData.label);m.userData.name=p.name||'Player';}if(m.userData.label){m.userData.label.visible=visible;m.userData.label.quaternion.copy(camera.quaternion);}}
+ for(const id in remoteMeshes){if(!remotePlayers[id]){let m=remoteMeshes[id];if(m.userData.label){m.userData.label.material.map.dispose();m.userData.label.material.dispose();}scene.remove(m);delete remoteMeshes[id];}}
+}
+function getRemoteOpponent(){if(!remoteId||!remotePlayers[remoteId])return null;return remotePlayers[remoteId];}
+function authStart(){auth.signInAnonymously().then(res=>{authUid=res.user.uid;uid=authUid+'_'+tabId;myRef=db.ref('duelStars/players/'+uid);myRef.onDisconnect().remove();myRef.set({authUid:authUid,tabId:tabId,name:playerName,color:skinColor,x:player.pos.x,y:player.pos.y,z:player.pos.z,yaw,mode:'lobby',matchId:null,updated:firebase.database.ServerValue.TIMESTAMP});listenOnline();listenMyAssignment();listenQueue();$('statusText').textContent='Lobby';setMessage('Connected as '+playerName,650);}).catch(e=>{console.error(e);$('statusText').textContent='Firebase error';setMessage('Firebase auth error: '+e.message,0)});}
+function listenOnline(){db.ref('duelStars/players').on('value',snap=>{remotePlayers=snap.val()||{};let list=Object.entries(remotePlayers).filter(([id,p])=>p.mode==='lobby').map(([id,p])=>`<div>${p.name||'Player'} ${id===uid?'(you)':''}</div>`).join('')||'<div>No players</div>';$('playersOnline').innerHTML=list;updateRemoteMeshes();});}
+function listenMyAssignment(){
+ if(!myRef)return;
+ myRef.on('value',snap=>{
+  const p=snap.val();
+  if(!p)return;
+  // This is the important matchmaking safety check.
+  // If Firebase assigns this tab to a match, join immediately instead of
+  // waiting for the general lobby listener, which can be overwritten by movement updates.
+  if(p.matchId&&p.side&&matchId!==p.matchId){
+   standingPad=null;
+   joinMatch(p.matchId,p.side);
+  }
+ });
+}
+function listenQueue(){db.ref('duelStars/queue').on('value',snap=>{let q=snap.val()||{};if(uid&&q.blue&&q.red&&q.blue!==q.red){tryCreateMatchFromQueue(q.blue,q.red);}});}
+function safeKey(a,b){return [a,b].sort().join('__').replace(/[.#$[\]/]/g,'_');}
+function tryCreateMatchFromQueue(blue,red){
+ if(!uid||!blue||!red||blue===red)return;
+ if(uid!==blue&&uid!==red)return;
+ const id=safeKey(blue,red);
+ const ref=db.ref('duelStars/matches/'+id);
+ ref.transaction(cur=>{
+  if(cur)return cur;
+  return {blue,red,status:'select',round:1,scores:{blue:0,red:0},health:{blue:100,red:100},ready:{},loadouts:{},winner:null,created:firebase.database.ServerValue.TIMESTAMP};
+ }).then(result=>{
+  if(!result.committed && !result.snapshot.exists())return;
+  const updates={};
+  updates['duelStars/players/'+blue+'/mode']='match';
+  updates['duelStars/players/'+blue+'/matchId']=id;
+  updates['duelStars/players/'+blue+'/side']='blue';
+  updates['duelStars/players/'+red+'/mode']='match';
+  updates['duelStars/players/'+red+'/matchId']=id;
+  updates['duelStars/players/'+red+'/side']='red';
+  updates['duelStars/queue/blue']=null;
+  updates['duelStars/queue/red']=null;
+  db.ref().update(updates).then(()=>{ if(uid===blue)joinMatch(id,'blue'); if(uid===red)joinMatch(id,'red'); });
+ }).catch(e=>{console.error('Match create failed',e);setMessage('Match create error: '+e.message,0);});
+}
+function createMatchIfHost(id,blue,red){tryCreateMatchFromQueue(blue,red);}
+function joinMatch(id,side){if(matchId===id)return;matchId=id;mySide=side;remoteSide=side==='blue'?'red':'blue';currentMatchRef=db.ref('duelStars/matches/'+id);currentMatchRef.on('value',snap=>{currentMatch=snap.val();handleMatchState();});remoteId=null;currentMatchRef.once('value').then(s=>{let m=s.val();remoteId=side==='blue'?m.red:m.blue;});gameMode='match';roundPhase='select';player.pos.copy(STARTS[side]);player.vel.set(0,0,0);player.health=100;showLoadout(true);}
+function leaveMatch(){if(currentMatchRef)currentMatchRef.off();currentMatchRef=null;currentMatch=null;matchId=null;mySide=null;remoteSide=null;remoteId=null;gameMode='lobby';roundPhase='lobby';player.pos.set(0,1.7,LOBBY_Z);player.health=100;showLoadout(false);if(uid)myRef.update({mode:'lobby',matchId:null,side:null});}
+function handleMatchState(){if(!currentMatch||!mySide)return;let s=currentMatch.status;$('scoreText').textContent=(currentMatch.scores?.blue||0)+' - '+(currentMatch.scores?.red||0);player.health=currentMatch.health?.[mySide]??100;if(s==='select'){roundPhase='select';showLoadout(true);$('readyStatus').textContent='Pick weapons and press Ready.'} if(s==='countdown'){roundPhase='countdown';showLoadout(false);setMessage('Round starting...',300)} if(s==='playing'){roundPhase='playing';showLoadout(false)} if(s==='finished'){showLoadout(false);let won=currentMatch.winner===mySide;setMessage(won?'MATCH WON +1 SHARD':'MATCH LOST',1800);if(won&&!currentMatch.paid?.[mySide]){shards++;saveLocal();currentMatchRef.child('paid/'+mySide).set(true)}setTimeout(leaveMatch,1800)} }
+function queueSide(side){
+ if(!uid||gameMode!=='lobby')return;
+ // Do not spam Firebase every frame while the player is already queued.
+ if(standingPad===side)return;
+ // If the player walks from one pad to the other, clear the old side first.
+ if(standingPad&&standingPad!==side)unqueue();
+ const queuePath=side==='blue'?'duelStars/queue/blue':'duelStars/queue/red';
+ db.ref(queuePath).set(uid).then(()=>{
+  return db.ref('duelStars/queue').once('value');
+ }).then(s=>{
+  const q=s.val()||{};
+  if(q.blue&&q.red&&q.blue!==q.red)tryCreateMatchFromQueue(q.blue,q.red);
+ }).catch(e=>{console.error('Queue failed',e);setMessage('Queue error: '+e.message,0);});
+ standingPad=side;
+ setMessage('Queued on '+side.toUpperCase()+' pad. Waiting for opponent...',0);
+}
+function unqueue(){
+ if(!uid)return;
+ db.ref('duelStars/queue').once('value').then(s=>{
+  let q=s.val()||{};
+  if(q.blue===uid)db.ref('duelStars/queue/blue').remove();
+  if(q.red===uid)db.ref('duelStars/queue/red').remove();
+ });
+ standingPad=null;
+ if(msg.textContent.startsWith('Queued'))msg.textContent='';
+}
+function updateMatchmakingPads(){
+ if(!uid||gameMode!=='lobby'||menuOpen||shopOpen)return;
+ const dBlue=player.pos.distanceTo(playBluePad.position);
+ const dRed=player.pos.distanceTo(playRedPad.position);
+ const onBlue=dBlue<3.5;
+ const onRed=dRed<3.5;
+ if(onBlue&&!onRed){queueSide('blue');return;}
+ if(onRed&&!onBlue){queueSide('red');return;}
+ // If the player leaves both pads, remove them from the queue.
+ if(!onBlue&&!onRed&&standingPad)unqueue();
+}
+function updatePlayer(dt){
+  // Stable movement rebuilt from the original offline version.
+  // Movement is ALWAYS based on the camera direction:
+  // W = forward, S = backward, D = right, A = left.
+  const controlsAllowed = !menuOpen && !shopOpen && roundPhase !== 'select';
+
+  // Update camera rotation before calculating movement so WASD never feels flipped.
+  camera.rotation.set(pitch, yaw, 0, 'YXZ');
+
+  const forward = new THREE.Vector3();
+  camera.getWorldDirection(forward);
+  forward.y = 0;
+  if (forward.lengthSq() < 0.0001) forward.set(0, 0, -1);
+  forward.normalize();
+
+  const right = new THREE.Vector3().crossVectors(forward, new THREE.Vector3(0, 1, 0)).normalize();
+  const wish = new THREE.Vector3();
+
+  if (controlsAllowed) {
+    if (keys.w) wish.add(forward);
+    if (keys.s) wish.sub(forward);
+    if (keys.d) wish.add(right);
+    if (keys.a) wish.sub(right);
+  }
+  if (wish.lengthSq() > 0) wish.normalize();
+
+  const sprint = keys.shift && !isADS && controlsAllowed ? 1.55 : 1;
+  const adsSlow = isADS ? 0.55 : 1;
+  const maxSpeed = 7.2 * sprint * adsSlow;
+  const accel = player.grounded ? 42 : 14;
+
+  player.vel.x += wish.x * accel * dt;
+  player.vel.z += wish.z * accel * dt;
+
+  const horizontal = new THREE.Vector3(player.vel.x, 0, player.vel.z);
+  if (horizontal.length() > maxSpeed) {
+    horizontal.setLength(maxSpeed);
+    player.vel.x = horizontal.x;
+    player.vel.z = horizontal.z;
+  }
+
+  if (keys[' '] && player.grounded && !isADS && controlsAllowed) {
+    player.vel.y = 8.4;
+    player.grounded = false;
+  }
+
+  player.vel.y -= 22 * dt;
+
+  if (wish.lengthSq() === 0 || !controlsAllowed) {
+    player.vel.x *= Math.pow(0.0008, dt);
+    player.vel.z *= Math.pow(0.0008, dt);
+  }
+
+  const old = player.pos.clone();
+  player.pos.addScaledVector(player.vel, dt);
+
+  if (player.pos.y <= player.height) {
+    player.pos.y = player.height;
+    player.vel.y = 0;
+    player.grounded = true;
+  }
+
+  if (collides(player.pos)) {
+    player.pos.copy(old);
+    player.vel.x *= -0.1;
+    player.vel.z *= -0.1;
+  }
+
+  camera.position.copy(player.pos);
+  camera.rotation.set(pitch, yaw, 0, 'YXZ');
+  camera.fov += (targetFov() - camera.fov) * Math.min(1, dt * 12);
+  camera.updateProjectionMatrix();
+
+  const targetWeaponZ = isADS ? -0.18 : 0;
+  weaponView.position.z += (targetWeaponZ - weaponView.position.z) * Math.min(1, dt * 14);
+}
+function collides(pos){const box=new THREE.Box3(new THREE.Vector3(pos.x-player.radius,0,pos.z-player.radius),new THREE.Vector3(pos.x+player.radius,player.height,pos.z+player.radius));return walls.some(w=>w.box.intersectsBox(box));}
+function targetFov(){
+  const w=weapons[currentWeapon];
+  if(isADS&&w&&w.scope){
+    return currentWeapon===5?24:48;
+  }
+  return 75;
+}
+function getLookDirection(){return new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(pitch,yaw,0,'YXZ')).normalize();}
+function attack(){if(menuOpen||shopOpen||roundPhase==='select')return;if(gameMode!=='match'||roundPhase!=='playing')return;if(!canShoot)return;let w=weapons[currentWeapon];canShoot=false;setTimeout(()=>canShoot=true,w.cooldown||500);if(currentWeapon===8){healSelf();return}if(currentWeapon===3){throwGrenade();return}if(w.type==='melee'){meleeAttack(false);return}for(let i=0;i<w.pellets;i++){let dir=getLookDirection();let spread=isADS&&w.scope?w.spread*.22:w.spread;dir.x+=(Math.random()-.5)*spread;dir.y+=(Math.random()-.5)*spread;dir.z+=(Math.random()-.5)*spread;dir.normalize();bullets.push({pos:player.pos.clone().add(dir.clone().multiplyScalar(.8)),vel:dir.clone().multiplyScalar(w.speed),damage:w.damage,life:1.15,mesh:makeBullet(0x8cf7ff),weapon:currentWeapon});}}
+function rightSpecial(){let w=weapons[currentWeapon];if(currentWeapon===7&&gameMode==='match'&&roundPhase==='playing'&&canShoot){canShoot=false;setTimeout(()=>canShoot=true,w.cooldown);meleeAttack(true);return}if(w.scope){isADS=true;$('scopeOverlay').style.display=currentWeapon===5?'block':'none'}}
+function stopADS(){isADS=false;$('scopeOverlay').style.display='none'}
+function makeBullet(color){let m=new THREE.Mesh(new THREE.SphereGeometry(.07,8,8),new THREE.MeshBasicMaterial({color}));scene.add(m);return m;}
+function updateProjectiles(dt){for(const b of bullets){b.life-=dt;b.pos.addScaledVector(b.vel,dt);b.mesh.position.copy(b.pos);if(bulletHitsWall(b.pos))b.dead=true;let hit=checkHitOpponent(b.pos,b.weapon);if(hit){applyDamage(hit.damage,hit.head);b.dead=true}if(b.life<=0)b.dead=true}for(let i=bullets.length-1;i>=0;i--){if(bullets[i].dead){scene.remove(bullets[i].mesh);bullets.splice(i,1)}}for(const g of grenades){g.timer-=dt;g.vel.y-=18*dt;g.pos.addScaledVector(g.vel,dt);if(g.pos.y<.22){g.pos.y=.22;g.vel.y*=-.45;g.vel.x*=.75;g.vel.z*=.75}g.mesh.position.copy(g.pos);if(g.timer<=0){explode(g.pos);g.dead=true}}grenades=grenades.filter(g=>{if(g.dead)scene.remove(g.mesh);return !g.dead});}
+function bulletHitsWall(pos){const pb=new THREE.Box3(new THREE.Vector3(pos.x-.06,pos.y-.06,pos.z-.06),new THREE.Vector3(pos.x+.06,pos.y+.06,pos.z+.06));return walls.some(w=>w.box.intersectsBox(pb));}
+function checkHitOpponent(pos,wi){let op=getRemoteOpponent();if(!op)return null;let opPos=new THREE.Vector3(op.x||0,op.y||1.7,op.z||0);let headCenter=opPos.clone().add(new THREE.Vector3(0,.2,0));let bodyCenter=opPos.clone().add(new THREE.Vector3(0,-.75,0));let w=weapons[wi];if(pos.distanceTo(headCenter)<.38){return{damage:wi===5?999:Math.round(w.damage*(w.head||1.5)),head:true}}if(pos.distanceTo(bodyCenter)<.82){return{damage:w.damage,head:false}}return null}
+function meleeAttack(backstab){let op=getRemoteOpponent();if(!op)return;let opPos=new THREE.Vector3(op.x||0,op.y||1.7,op.z||0);let dist=player.pos.distanceTo(opPos);let w=weapons[currentWeapon];if(dist>(w.range||2.2))return;let dirToOpp=opPos.clone().sub(player.pos).normalize();let aim=getLookDirection();if(aim.dot(dirToOpp)<.55)return;let dmg=w.damage;if(backstab&&currentWeapon===7){let oppForward=new THREE.Vector3(Math.sin(op.yaw||0),0,-Math.cos(op.yaw||0));let fromOpp=player.pos.clone().sub(opPos).setY(0).normalize();let behind=oppForward.dot(fromOpp)<-.35;dmg=behind?999:40;setMessage(behind?'BACKSTAB!':'Knife hit',700)}applyDamage(dmg,false)}
+function healSelf(){let newH=Math.min(100,player.health+50);if(currentMatchRef)currentMatchRef.child('health/'+mySide).set(newH);setMessage('Medkit +50 HP',700)}
+function applyDamage(amount,head){if(!currentMatchRef||!remoteSide||roundPhase!=='playing')return;if(head)setMessage('HEADSHOT',450);let href=currentMatchRef.child('health/'+remoteSide);href.transaction(h=>Math.max(0,(h??100)-amount)).then(res=>{let h=res.snapshot.val();if(h<=0)finishRound(mySide);});}
+function finishRound(winnerSide){if(!currentMatchRef)return;currentMatchRef.transaction(m=>{if(!m||m.status!=='playing')return m;m.scores=m.scores||{blue:0,red:0};m.scores[winnerSide]=(m.scores[winnerSide]||0)+1;if(m.scores[winnerSide]>=5){m.status='finished';m.winner=winnerSide}else{m.status='select';m.round=(m.round||1)+1;m.health={blue:100,red:100};m.ready={};m.loadouts={}}return m;});}
+function throwGrenade(){let dir=getLookDirection();let mesh=new THREE.Mesh(new THREE.SphereGeometry(.18,16,16),new THREE.MeshStandardMaterial({color:0x55aa44}));scene.add(mesh);grenades.push({pos:player.pos.clone().add(dir.clone().multiplyScalar(.8)),vel:dir.multiplyScalar(22).add(new THREE.Vector3(0,5,0)),timer:1.6,mesh});}
+function explode(pos){let boom=new THREE.Mesh(new THREE.SphereGeometry(1,20,20),new THREE.MeshBasicMaterial({color:0xffaa00,transparent:true,opacity:.7}));boom.position.copy(pos);scene.add(boom);let s=0;let iv=setInterval(()=>{s+=.35;boom.scale.set(s,s,s);boom.material.opacity-=.08;if(boom.material.opacity<=0){clearInterval(iv);scene.remove(boom)}},25);let op=getRemoteOpponent();if(op&&pos.distanceTo(new THREE.Vector3(op.x||0,op.y||1.7,op.z||0))<weapons[3].explosion)applyDamage(weapons[3].damage,false);if(pos.distanceTo(player.pos)<weapons[3].explosion){let nh=Math.max(0,player.health-28);currentMatchRef.child('health/'+mySide).set(nh);if(nh<=0)finishRound(remoteSide)}}
+function selectWeapon(i){if(!weapons[i]||!unlocked[i])return;let allowed=Object.values(loadout).includes(i);if(gameMode==='match'&&!allowed)return;currentWeapon=i;rebuildWeaponModel();renderWeaponBar();}
+function renderWeaponBar(){let ids=gameMode==='match'?Object.values(loadout):[loadout.primary,loadout.secondary,loadout.melee,loadout.support];$('weaponBar').innerHTML=ids.map((id,idx)=>`<div class="slot ${id===currentWeapon?'active':''}">${idx+1} ${weapons[id].short}<small>${weapons[id].type}</small></div>`).join('');}
+function renderSettings(){let tabW=$('weaponsTab');let byType={primary:[],secondary:[],melee:[],support:[]};weapons.forEach((w,i)=>byType[w.type].push([w,i]));tabW.innerHTML=Object.entries(byType).map(([type,arr])=>`<div class="card"><h3>${type.toUpperCase()}</h3><p>You can equip only one ${type} at a time.</p><div class="weaponGrid">${arr.map(([w,i])=>`<div class="weaponCard ${!unlocked[i]?'locked':''} ${loadout[type]===i?'equipped':''}"><b>${w.name}</b><small>${unlocked[i]?'Owned':'Locked'} ${w.cost?'· '+w.cost+' shards':''}</small><span class="pill">${type}</span><br>${unlocked[i]?`<button onclick="equipWeapon(${i})">Equip</button>`:`<button onclick="openShop()">Shop</button>`}</div>`).join('')}</div></div>`).join('');
+ $('meTab').innerHTML=`<div class="card"><h3>Me</h3><p>Other players see this in the online lobby.</p><label>Display name</label><input id="nameInput" value="${playerName.replace(/"/g,'&quot;')}"><button class="btn primary" onclick="saveName()">Save Name</button></div><div class="card"><h3>Skin Color</h3><div class="colorPick">${['#4fd3ff','#ff4b4b','#66ff99','#ffe66d','#b46cff','#ff8c33','#ffffff','#111111'].map(c=>`<div class="colorSwatch ${skinColor===c?'sel':''}" style="background:${c}" onclick="setSkin('${c}')"></div>`).join('')}</div></div>`;}
+window.equipWeapon=function(i){let t=weapons[i].type;if(!unlocked[i])return;loadout[t]=i;saveLocal();renderSettings();renderWeaponBar();setMessage('Equipped '+weapons[i].name,650)};window.saveName=function(){playerName=$('nameInput').value.trim().slice(0,18)||'Player';saveLocal();if(myRef)myRef.update({name:playerName});renderSettings()};window.setSkin=function(c){skinColor=c;saveLocal();if(myRef)myRef.update({color:skinColor});renderSettings()};
+function openSettings(){menuOpen=true;shopOpen=false;$('settingsPanel').style.display='block';$('shopPanel').style.display='none';renderSettings();document.exitPointerLock?.()}function closeSettings(){menuOpen=false;$('settingsPanel').style.display='none'}function openShop(){shopOpen=true;menuOpen=false;$('shopPanel').style.display='block';$('settingsPanel').style.display='none';renderShop();document.exitPointerLock?.()}function closeShop(){shopOpen=false;$('shopPanel').style.display='none'}
+function renderShop(){let items=weapons.map((w,i)=>w.cost&&!unlocked[i]?`<div class="card"><div class="row between"><div><b>${w.name}</b><p>${w.type} · ${w.cost} shards</p></div><button class="btn primary" onclick="buyWeapon(${i})">Buy</button></div></div>`:'').join('');$('shopItems').innerHTML=items||'<div class="card"><b>Everything owned</b><p>All shop weapons are already in your inventory.</p></div>';}
+window.buyWeapon=function(i){let w=weapons[i];if(unlocked[i])return setMessage('Already owned',700);if(shards<w.cost)return setMessage('Need '+w.cost+' shards',900);shards-=w.cost;unlocked[i]=true;saveLocal();$('shards').textContent=shards;renderShop();renderSettings();setMessage('Bought '+w.name,900)};
+function showLoadout(show){$('loadoutPanel').style.display=show?'block':'none';if(show){ready=false;renderLoadout();document.exitPointerLock?.()}}
+function renderLoadout(){let types=['primary','secondary','melee','support'];$('loadoutGrid').innerHTML=types.map(t=>`<div class="loadCol"><h3>${t.toUpperCase()}</h3>${weapons.map((w,i)=>w.type===t?`<button class="loadOpt ${loadout[t]===i?'sel':''} ${!unlocked[i]?'locked':''}" ${!unlocked[i]?'disabled':''} onclick="pickLoadout('${t}',${i})">${w.name}${!unlocked[i]?' 🔒':''}</button>`:'').join('')}</div>`).join('')}
+window.pickLoadout=function(t,i){if(!unlocked[i])return;loadout[t]=i;saveLocal();renderLoadout();renderWeaponBar()};
+function readyUp(){if(!currentMatchRef||!mySide)return;ready=true;currentMatchRef.child('loadouts/'+mySide).set(loadout);currentMatchRef.child('ready/'+mySide).set(true);$('readyStatus').textContent='Ready! Waiting for opponent...';currentMatchRef.once('value').then(s=>{let m=s.val();if(m?.ready?.blue&&m?.ready?.red){currentMatchRef.update({status:'countdown',health:{blue:100,red:100}});setTimeout(()=>currentMatchRef.child('status').set('playing'),1400)}})}
+function interact(){if(gameMode==='lobby'){let dBlue=player.pos.distanceTo(playBluePad.position),dRed=player.pos.distanceTo(playRedPad.position),dShop=player.pos.distanceTo(shopBasket.position);if(dShop<4){openShop();return}if(dBlue<3.5){queueSide('blue');return}if(dRed<3.5){queueSide('red');return}}}
+function updateLobbyHint(){
+ hint.textContent='';
+ if(gameMode!=='lobby')return;
+ if(player.pos.distanceTo(shopBasket.position)<4)hint.textContent='Press E to open shop basket';
+ else if(player.pos.distanceTo(playBluePad.position)<3.5)hint.textContent='Standing on BLUE pad - waiting for RED player';
+ else if(player.pos.distanceTo(playRedPad.position)<3.5)hint.textContent='Standing on RED pad - waiting for BLUE player';
+}
+function networkTick(t){
+ if(!uid||!myRef)return;
+ // If another client has already assigned this player to a match, do not overwrite
+ // that Firebase assignment with lobby/null values during the next movement update.
+ const assigned=remotePlayers[uid]&&remotePlayers[uid].matchId&&remotePlayers[uid].side;
+ if(assigned&&!matchId){
+  joinMatch(remotePlayers[uid].matchId,remotePlayers[uid].side);
+  return;
+ }
+ if(t-lastNet>50){
+  lastNet=t;
+  let data={authUid:authUid,tabId:tabId,name:playerName,color:skinColor,x:player.pos.x,y:player.pos.y,z:player.pos.z,yaw,weapon:currentWeapon,updated:firebase.database.ServerValue.TIMESTAMP};
+  if(matchId){data.mode='match';data.matchId=matchId;data.side=mySide||null;}
+  else if(gameMode==='lobby'){data.mode='lobby';data.matchId=null;data.side=null;}
+  myRef.update(data);
+ }
+ if(t-lastHeartbeat>1000){lastHeartbeat=t;if(gameMode==='lobby')unqueueIfLeftPads();}
+}
+function unqueueIfLeftPads(){if(!standingPad)return;let pad=standingPad==='blue'?playBluePad:playRedPad;if(player.pos.distanceTo(pad.position)>4.2){unqueue();}}
+function updateHud(){if(uid&&remotePlayers[uid]?.matchId&&!matchId)joinMatch(remotePlayers[uid].matchId,remotePlayers[uid].side);$('statusText').textContent=gameMode==='lobby'?'Lobby':('1v1 '+(roundPhase||''));$('health').textContent=Math.max(0,Math.round(player.health));$('scoreText').textContent=currentMatch?((currentMatch.scores?.blue||0)+' - '+(currentMatch.scores?.red||0)):'0 - 0';$('shards').textContent=shards;$('settingsBtn').style.display=gameMode==='lobby'?'block':'none';$('playerList').style.display=gameMode==='lobby'?'block':'none';$('crosshair').style.display=(gameMode==='match'&&roundPhase==='playing')?'block':'none';renderWeaponBar();}
+function animate(t=0){
+ requestAnimationFrame(animate);
+ let dt=Math.min(clock.getDelta(),.033);
+ updatePlayer(dt);
+ if(gameMode==='lobby'){
+  updateMatchmakingPads();
+  updateLobbyHint();
+ }else{
+  hint.textContent=roundPhase==='playing'?'First to 5 wins':'Choose your loadout';
+ }
+ updateProjectiles(dt);
+ updateRemoteMeshes();
+ networkTick(t);
+ updateHud();
+ renderer.render(scene,camera);
+}
+window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+function keyName(e){if(e.code==='KeyW')return 'w';if(e.code==='KeyA')return 'a';if(e.code==='KeyS')return 's';if(e.code==='KeyD')return 'd';if(e.code==='Space')return ' ';if(e.code==='ShiftLeft'||e.code==='ShiftRight')return 'shift';return e.key.toLowerCase();}
+document.addEventListener('mousemove',e=>{if(document.pointerLockElement!==document.body)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-1.35,Math.min(1.35,pitch));});
+document.addEventListener('keydown',e=>{
+  let k=keyName(e);
+  const typing = document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
+  if(['w','a','s','d',' ','shift','e','tab','1','2','3','4'].includes(k))e.preventDefault();
+  if(typing && k!=='tab') return;
+  if(['w','a','s','d',' ','shift'].includes(k)) keys[k]=true;
+  if(k==='tab'){
+    keys={};
+    closeSettings();
+    closeShop();
+    if(roundPhase!=='select')showLoadout(false);
+  }
+  if(k==='e')interact();
+  if(['1','2','3','4'].includes(k)){
+    let ids=Object.values(loadout);
+    selectWeapon(ids[Number(k)-1]);
+  }
+});
+document.addEventListener('keyup',e=>{keys[keyName(e)]=false});
+document.addEventListener('mousedown',e=>{if(menuOpen||shopOpen||roundPhase==='select')return;if(document.pointerLockElement!==document.body)document.body.requestPointerLock();if(e.button===0)attack();if(e.button===2)rightSpecial();});
+document.addEventListener('mouseup',e=>{if(e.button===2)stopADS()});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+window.addEventListener('blur',()=>{keys={};stopADS();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){keys={};stopADS();}});
+document.addEventListener('pointerlockchange',()=>{if(document.pointerLockElement!==document.body){keys={};stopADS();}$('clickToLock').style.display=document.pointerLockElement===document.body?'none':'block'});
+window.addEventListener('beforeunload',()=>{try{unqueue();}catch(e){}});
+$('settingsBtn').onclick=openSettings;$('closeSettings').onclick=closeSettings;$('closeShop').onclick=closeShop;$('readyBtn').onclick=readyUp;document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('weaponsTab').style.display=b.dataset.tab==='weapons'?'block':'none';$('meTab').style.display=b.dataset.tab==='me'?'block':'none';});
+init3D();renderSettings();renderShop();authStart();
+</script>
+</body>
+</html>
